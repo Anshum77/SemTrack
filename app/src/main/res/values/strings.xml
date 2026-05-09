@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">SemTrack</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="completed">Completed</string>
+    <string name="completed_count">(%1$d)</string>
+    <string name="delete_completed">Delete completed</string>
+    <string name="delete_completed_title">Delete completed tasks?</string>
+    <string name="delete_completed_message">This will permanently delete all completed tasks.</string>
+    <string name="toggle_completed">Toggle completed</string>
 </resources>
