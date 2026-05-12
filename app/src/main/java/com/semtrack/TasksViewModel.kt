@@ -92,6 +92,12 @@ class TasksViewModel(
         }
     }
 
+    fun reorderTasks(orderedTaskIds: List<Long>) {
+        viewModelScope.launch {
+            repository.reorderTasks(orderedTaskIds)
+        }
+    }
+
     fun deleteCompletedTasks(listId: Long) {
         viewModelScope.launch {
             repository.deleteCompletedTasks(listId)

@@ -19,6 +19,9 @@ interface TaskDao {
     @Query("UPDATE tasks SET title = :title WHERE id = :taskId")
     suspend fun updateTitle(taskId: Long, title: String)
 
+    @Query("UPDATE tasks SET sortOrder = :sortOrder WHERE id = :taskId")
+    suspend fun updateSortOrder(taskId: Long, sortOrder: Int)
+
     @Query("UPDATE tasks SET isCompleted = :isCompleted, sortOrder = :sortOrder WHERE id = :taskId")
     suspend fun setCompleted(taskId: Long, isCompleted: Boolean, sortOrder: Int)
 

@@ -2,6 +2,7 @@ package com.semtrack
 
 import android.graphics.Paint
 import android.os.Bundle
+import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,6 +14,8 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.core.view.ViewCompat
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
@@ -209,6 +212,51 @@ class TasksFragment : Fragment() {
         return currentLists.none { it.name == name && it.id != excludeListId }
     }
 
+    private inner class TaskDragCallback(
+        private val adapter: TaskAdapter
+    ) : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
+
+        override fun onMove(
+            recyclerView: RecyclerView,
+            viewHolder: RecyclerView.ViewHolder,
+            target: RecyclerView.ViewHolder
+        ): Boolean {
+            val from = viewHolder.bindingAdapterPosition
+            val to = target.bindingAdapterPosition
+            if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) return false
+            return adapter.moveItem(from, to)
+        }
+
+        override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+            // No swipe actions.
+        }
+
+        override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+            if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder != null) {
+                val itemView = viewHolder.itemView
+                if (itemView.tag == null) {
+                    itemView.tag = itemView.background
+                }
+                itemView.setBackgroundResource(R.drawable.task_item_drag_background)
+                ViewCompat.setElevation(itemView, resources.getDimension(R.dimen.task_drag_elevation))
+                adapter.onDragStarted()
+            }
+            super.onSelectedChanged(viewHolder, actionState)
+        }
+
+        override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+            val itemView = viewHolder.itemView
+            val original = itemView.tag as? Drawable
+            if (original != null) {
+                itemView.background = original
+                itemView.tag = null
+            }
+            ViewCompat.setElevation(itemView, 0f)
+            super.clearView(recyclerView, viewHolder)
+            adapter.onDragFinished()
+        }
+    }
+
     // Inner adapter for ViewPager2
     inner class ListsPagerAdapter(
         private val onRenameListRequested: (TaskListUiState) -> Unit,
@@ -241,17 +289,25 @@ class TasksFragment : Fragment() {
                 activeAdapter = TaskAdapter(
                     onToggleComplete = onCompleteTask,
                     onToggleStar = onToggleStar,
-                    onEditTask = onEditTask
+                    onEditTask = onEditTask,
+                    onReorder = { tasks ->
+                        viewModel.reorderTasks(tasks.map { it.id })
+                    }
                 )
                 rvTasks.adapter = activeAdapter
+                ItemTouchHelper(TaskDragCallback(activeAdapter)).attachToRecyclerView(rvTasks)
 
                 rvCompleted.layoutManager = LinearLayoutManager(view.context)
                 completedAdapter = TaskAdapter(
                     onToggleComplete = onRestoreTask,
                     onToggleStar = onToggleStar,
-                    onEditTask = onEditTask
+                    onEditTask = onEditTask,
+                    onReorder = { tasks ->
+                        viewModel.reorderTasks(tasks.map { it.id })
+                    }
                 )
                 rvCompleted.adapter = completedAdapter
+                ItemTouchHelper(TaskDragCallback(completedAdapter)).attachToRecyclerView(rvCompleted)
             }
         }
 
@@ -317,13 +373,18 @@ class TasksFragment : Fragment() {
 class TaskAdapter(
     private val onToggleComplete: (TaskUi) -> Unit,
     private val onToggleStar: (TaskUi) -> Unit,
-    private val onEditTask: (TaskUi) -> Unit
+    private val onEditTask: (TaskUi) -> Unit,
+    private val onReorder: (List<TaskUi>) -> Unit
 ) : RecyclerView.Adapter<TaskAdapter.TaskViewHolder>() {
 
-    private var tasks: List<TaskUi> = emptyList()
+    private var tasks: MutableList<TaskUi> = mutableListOf()
+    private var pendingTasks: List<TaskUi>? = null
+    private var isDragging = false
+    private var hasOrderChanged = false
 
     class TaskViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val title: TextView = view.findViewById(R.id.tv_task_title)
+        val checkboxContainer: View = view.findViewById(R.id.checkbox_container)
         val ivCheckbox: ImageView = view.findViewById(R.id.iv_checkbox)
         val ivStar: ImageView = view.findViewById(R.id.iv_star)
     }
@@ -362,7 +423,7 @@ class TaskAdapter(
             holder.ivStar.setImageResource(R.drawable.ic_star_outline)
         }
 
-        holder.ivCheckbox.setOnClickListener {
+        holder.checkboxContainer.setOnClickListener {
             onToggleComplete(task)
         }
 
@@ -382,7 +443,38 @@ class TaskAdapter(
     override fun getItemCount() = tasks.size
 
     fun submitTasks(newTasks: List<TaskUi>) {
-        tasks = newTasks
+        if (isDragging) {
+            pendingTasks = newTasks
+            return
+        }
+        tasks = newTasks.toMutableList()
+        hasOrderChanged = false
         notifyDataSetChanged()
+    }
+
+    fun moveItem(from: Int, to: Int): Boolean {
+        if (from == to) return false
+        val moved = tasks.removeAt(from)
+        tasks.add(to, moved)
+        notifyItemMoved(from, to)
+        hasOrderChanged = true
+        return true
+    }
+
+    fun onDragStarted() {
+        isDragging = true
+    }
+
+    fun onDragFinished() {
+        isDragging = false
+        if (hasOrderChanged) {
+            onReorder(tasks.toList())
+            hasOrderChanged = false
+        }
+        pendingTasks?.let { updated ->
+            tasks = updated.toMutableList()
+            pendingTasks = null
+            notifyDataSetChanged()
+        }
     }
 }

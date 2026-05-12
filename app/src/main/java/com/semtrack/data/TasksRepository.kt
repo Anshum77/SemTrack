@@ -71,6 +71,14 @@ class TasksRepository(
         taskDao.updateTitle(taskId, title)
     }
 
+    suspend fun reorderTasks(orderedTaskIds: List<Long>) {
+        if (orderedTaskIds.isEmpty()) return
+        val startOrder = orderedTaskIds.size
+        orderedTaskIds.forEachIndexed { index, taskId ->
+            taskDao.updateSortOrder(taskId, startOrder - index)
+        }
+    }
+
     suspend fun deleteCompletedTasks(listId: Long) {
         taskDao.deleteCompleted(listId)
     }

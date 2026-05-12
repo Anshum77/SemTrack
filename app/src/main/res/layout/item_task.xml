@@ -9,12 +9,23 @@
     android:gravity="center_vertical"
     android:background="?attr/selectableItemBackground">
 
-    <ImageView
-        android:id="@+id/iv_checkbox"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:src="@drawable/ic_circle_outline"
-        android:contentDescription="Complete Task" />
+    <FrameLayout
+        android:id="@+id/checkbox_container"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:padding="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:id="@+id/iv_checkbox"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_circle_outline"
+            android:contentDescription="Complete Task" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/tv_task_title"
