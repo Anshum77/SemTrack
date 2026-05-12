@@ -1,7 +1,7 @@
 package com.semtrack
 
-import android.os.Bundle
 import android.graphics.Paint
+import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,6 +9,10 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
@@ -17,32 +21,23 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
-
-data class Task(
-    val title: String,
-    var isStarred: Boolean = false,
-    var isCompleted: Boolean = false
-)
-
-data class TaskListState(
-    val active: MutableList<Task> = mutableListOf(),
-    val completed: MutableList<Task> = mutableListOf(),
-    var isCompletedExpanded: Boolean = false
-)
+import kotlinx.coroutines.launch
 
 class TasksFragment : Fragment() {
+
+    private val viewModel: TasksViewModel by viewModels {
+        TasksViewModel.Factory(requireContext().applicationContext)
+    }
 
     private lateinit var viewPager: ViewPager2
     private lateinit var fabAddTask: FloatingActionButton
     private lateinit var tabLayout: TabLayout
     private lateinit var btnAddList: ImageView
 
-    // Map to hold different categories of tasks. Using LinkedHashMap to preserve order.
-    private val taskLists = LinkedHashMap<String, TaskListState>().apply {
-        put("My Tasks", TaskListState())
-    }
-
     private lateinit var pagerAdapter: ListsPagerAdapter
+    private var tabMediator: TabLayoutMediator? = null
+    private var currentLists: List<TaskListUiState> = emptyList()
+    private var pendingSelectLastList = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -55,12 +50,36 @@ class TasksFragment : Fragment() {
         tabLayout = view.findViewById(R.id.tab_layout)
         btnAddList = view.findViewById(R.id.btn_add_list)
 
-        pagerAdapter = ListsPagerAdapter()
+        pagerAdapter = ListsPagerAdapter(
+            onRenameListRequested = { list ->
+                showListDialog("Rename List", list.name) { newName ->
+                    if (newName.isNotBlank() && isListNameAvailable(newName, list.id)) {
+                        viewModel.renameList(list.id, newName)
+                    }
+                }
+            },
+            onToggleCompletedExpanded = { list ->
+                viewModel.setCompletedExpanded(list.id, !list.isCompletedExpanded)
+            },
+            onClearCompleted = { list ->
+                viewModel.deleteCompletedTasks(list.id)
+            },
+            onCompleteTask = { task ->
+                viewModel.completeTask(task)
+            },
+            onRestoreTask = { task ->
+                viewModel.restoreTask(task)
+            },
+            onToggleStar = { task ->
+                viewModel.toggleStar(task)
+            }
+        )
         viewPager.adapter = pagerAdapter
 
-        TabLayoutMediator(tabLayout, viewPager) { tab, position ->
-            tab.text = taskLists.keys.toList()[position]
-        }.attach()
+        tabMediator = TabLayoutMediator(tabLayout, viewPager) { tab, position ->
+            tab.text = pagerAdapter.getListName(position)
+        }
+        tabMediator?.attach()
 
         fabAddTask.setOnClickListener {
             showAddTaskDialog()
@@ -68,10 +87,9 @@ class TasksFragment : Fragment() {
 
         btnAddList.setOnClickListener {
             showListDialog("New List", "") { newName ->
-                if (newName.isNotBlank() && !taskLists.containsKey(newName)) {
-                    taskLists[newName] = TaskListState()
-                    pagerAdapter.notifyItemInserted(taskLists.size - 1)
-                    viewPager.setCurrentItem(taskLists.size - 1, true)
+                if (newName.isNotBlank() && isListNameAvailable(newName, null)) {
+                    pendingSelectLastList = true
+                    viewModel.addList(newName)
                 }
             }
         }
@@ -79,7 +97,32 @@ class TasksFragment : Fragment() {
         return view
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { lists ->
+                    currentLists = lists
+                    pagerAdapter.submitLists(lists)
+
+                    if (pendingSelectLastList && lists.isNotEmpty()) {
+                        viewPager.setCurrentItem(lists.size - 1, true)
+                        pendingSelectLastList = false
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        tabMediator?.detach()
+        tabMediator = null
+    }
+
     private fun showAddTaskDialog() {
+        val currentList = currentLists.getOrNull(viewPager.currentItem) ?: return
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_add_task, null)
         val etTaskTitle = dialogView.findViewById<EditText>(R.id.et_task_title)
 
@@ -88,9 +131,7 @@ class TasksFragment : Fragment() {
             .setPositiveButton("Save") { dialog, _ ->
                 val title = etTaskTitle.text.toString().trim()
                 if (title.isNotBlank()) {
-                    val listKeyName = taskLists.keys.toList()[viewPager.currentItem]
-                    taskLists[listKeyName]?.active?.add(0, Task(title))
-                    pagerAdapter.notifyItemChanged(viewPager.currentItem)
+                    viewModel.addTask(currentList.id, title)
                 }
                 dialog.dismiss()
             }
@@ -139,8 +180,21 @@ class TasksFragment : Fragment() {
             .show()
     }
 
+    private fun isListNameAvailable(name: String, excludeListId: Long?): Boolean {
+        return currentLists.none { it.name == name && it.id != excludeListId }
+    }
+
     // Inner adapter for ViewPager2
-    inner class ListsPagerAdapter : RecyclerView.Adapter<ListsPagerAdapter.ListPageViewHolder>() {
+    inner class ListsPagerAdapter(
+        private val onRenameListRequested: (TaskListUiState) -> Unit,
+        private val onToggleCompletedExpanded: (TaskListUiState) -> Unit,
+        private val onClearCompleted: (TaskListUiState) -> Unit,
+        private val onCompleteTask: (TaskUi) -> Unit,
+        private val onRestoreTask: (TaskUi) -> Unit,
+        private val onToggleStar: (TaskUi) -> Unit
+    ) : RecyclerView.Adapter<ListsPagerAdapter.ListPageViewHolder>() {
+
+        private var lists: List<TaskListUiState> = emptyList()
 
         inner class ListPageViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val tvListTitle: TextView = view.findViewById(R.id.tv_list_title)
@@ -153,6 +207,24 @@ class TasksFragment : Fragment() {
             val ivCompletedToggle: ImageView = view.findViewById(R.id.iv_completed_toggle)
             val cardCompleted: View = view.findViewById(R.id.card_completed)
             val rvCompleted: RecyclerView = view.findViewById(R.id.rv_completed_tasks)
+            val activeAdapter: TaskAdapter
+            val completedAdapter: TaskAdapter
+
+            init {
+                rvTasks.layoutManager = LinearLayoutManager(view.context)
+                activeAdapter = TaskAdapter(
+                    onToggleComplete = onCompleteTask,
+                    onToggleStar = onToggleStar
+                )
+                rvTasks.adapter = activeAdapter
+
+                rvCompleted.layoutManager = LinearLayoutManager(view.context)
+                completedAdapter = TaskAdapter(
+                    onToggleComplete = onRestoreTask,
+                    onToggleStar = onToggleStar
+                )
+                rvCompleted.adapter = completedAdapter
+            }
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ListPageViewHolder {
@@ -161,61 +233,24 @@ class TasksFragment : Fragment() {
         }
 
         override fun onBindViewHolder(holder: ListPageViewHolder, position: Int) {
-            val listKey = taskLists.keys.toList()[position]
-            val listState = taskLists[listKey] ?: TaskListState()
-            val activeTasks = listState.active
-            val completedTasks = listState.completed
+            val listState = lists[position]
 
-            holder.tvListTitle.text = listKey
-
-            lateinit var activeAdapter: TaskAdapter
-            lateinit var completedAdapter: TaskAdapter
-
-            activeAdapter = TaskAdapter(activeTasks) { taskPos ->
-                if (taskPos in activeTasks.indices) {
-                    val completedTask = activeTasks.removeAt(taskPos)
-                    completedTask.isCompleted = true
-                    completedTasks.add(0, completedTask)
-                    activeAdapter.notifyItemRemoved(taskPos)
-                    completedAdapter.notifyItemInserted(0)
-                    updateCompletedSection(holder, listState)
-                }
-            }
-
-            completedAdapter = TaskAdapter(completedTasks) { taskPos ->
-                if (taskPos in completedTasks.indices) {
-                    val restoredTask = completedTasks.removeAt(taskPos)
-                    restoredTask.isCompleted = false
-                    activeTasks.add(0, restoredTask)
-                    completedAdapter.notifyItemRemoved(taskPos)
-                    activeAdapter.notifyItemInserted(0)
-                    holder.rvTasks.scrollToPosition(0)
-                    updateCompletedSection(holder, listState)
-                }
-            }
-
-            holder.rvTasks.layoutManager = LinearLayoutManager(context)
-            holder.rvTasks.adapter = activeAdapter
-
-            holder.rvCompleted.layoutManager = LinearLayoutManager(context)
-            holder.rvCompleted.adapter = completedAdapter
+            holder.tvListTitle.text = listState.name
+            holder.activeAdapter.submitTasks(listState.active)
+            holder.completedAdapter.submitTasks(listState.completed)
 
             holder.completedHeader.setOnClickListener {
-                listState.isCompletedExpanded = !listState.isCompletedExpanded
-                updateCompletedSection(holder, listState)
+                onToggleCompletedExpanded(listState)
             }
 
             holder.ivCompletedToggle.setOnClickListener {
-                listState.isCompletedExpanded = !listState.isCompletedExpanded
-                updateCompletedSection(holder, listState)
+                onToggleCompletedExpanded(listState)
             }
 
             holder.tvClearCompleted.setOnClickListener {
-                if (completedTasks.isNotEmpty()) {
+                if (listState.completed.isNotEmpty()) {
                     showDeleteCompletedDialog {
-                        completedTasks.clear()
-                        completedAdapter.notifyDataSetChanged()
-                        updateCompletedSection(holder, listState)
+                        onClearCompleted(listState)
                     }
                 }
             }
@@ -223,25 +258,22 @@ class TasksFragment : Fragment() {
             updateCompletedSection(holder, listState)
 
             holder.btnEditList.setOnClickListener {
-                showListDialog("Rename List", listKey) { newName ->
-                    if (newName.isNotBlank() && newName != listKey && !taskLists.containsKey(newName)) {
-                        val listState = taskLists.remove(listKey) ?: TaskListState()
-
-                        val newMap = LinkedHashMap<String, TaskListState>()
-                        taskLists.forEach { (k, v) -> newMap[k] = v }
-                        newMap[newName] = listState
-
-                        taskLists.clear()
-                        taskLists.putAll(newMap)
-                        notifyDataSetChanged()
-                    }
-                }
+                onRenameListRequested(listState)
             }
         }
 
-        override fun getItemCount() = taskLists.size
+        override fun getItemCount() = lists.size
 
-        private fun updateCompletedSection(holder: ListPageViewHolder, listState: TaskListState) {
+        fun submitLists(newLists: List<TaskListUiState>) {
+            lists = newLists
+            notifyDataSetChanged()
+        }
+
+        fun getListName(position: Int): String {
+            return lists.getOrNull(position)?.name.orEmpty()
+        }
+
+        private fun updateCompletedSection(holder: ListPageViewHolder, listState: TaskListUiState) {
             val completedCount = listState.completed.size
             val hasCompleted = completedCount > 0
 
@@ -255,9 +287,11 @@ class TasksFragment : Fragment() {
 }
 
 class TaskAdapter(
-    private var tasks: MutableList<Task>,
-    private val onToggleComplete: (Int) -> Unit
+    private val onToggleComplete: (TaskUi) -> Unit,
+    private val onToggleStar: (TaskUi) -> Unit
 ) : RecyclerView.Adapter<TaskAdapter.TaskViewHolder>() {
+
+    private var tasks: List<TaskUi> = emptyList()
 
     class TaskViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val title: TextView = view.findViewById(R.id.tv_task_title)
@@ -300,20 +334,24 @@ class TaskAdapter(
         }
 
         holder.ivCheckbox.setOnClickListener {
-            onToggleComplete(holder.adapterPosition)
+            onToggleComplete(task)
         }
 
         holder.ivStar.setOnClickListener {
-            task.isStarred = !task.isStarred
-            notifyItemChanged(holder.adapterPosition)
+            onToggleStar(task)
         }
 
         holder.itemView.setOnClickListener {
             if (task.isCompleted) {
-                onToggleComplete(holder.adapterPosition)
+                onToggleComplete(task)
             }
         }
     }
 
     override fun getItemCount() = tasks.size
+
+    fun submitTasks(newTasks: List<TaskUi>) {
+        tasks = newTasks
+        notifyDataSetChanged()
+    }
 }
