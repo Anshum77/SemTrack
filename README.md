@@ -1,36 +1,51 @@
 # SemTrack
 
-A personal college companion Android app focused on three core areas: attendance tracking, evaluation calculations, and task management.
+SemTrack is a personal college companion Android app focused on task management, attendance tracking, and evaluation calculations.
 
 ## Current Progress
 
-- Tasks module is the most complete and includes multiple lists, swipe navigation, and a modern Material 3 UI.
-- Attendance and Evaluations modules are scaffolded and ready for feature build-out.
+- Tasks module is fully persistent with Room, ViewModel, and StateFlow.
+- Attendance module now has course management plus a course detail screen for date-wise attendance marking and history.
+- Evaluations module is still scaffolded for future implementation.
 
-## Key Features (Tasks)
+## Implemented Features
 
-- Multiple task lists with ViewPager swipe navigation
-- Add and rename lists
-- Add tasks and star important items
-- Completed tasks move to a dedicated collapsible section
-- Restore completed tasks or delete all completed items
+### Tasks
 
-## Planned Features
+- Multiple task lists with swipe navigation
+- Add, rename, and delete lists
+- Add, edit, star, complete, restore, and reorder tasks
+- Persisted local storage with Room database
+- Collapsible completed section and delete-completed flow
 
-- Attendance tracker with skip-allowed calculations
-- Evaluation calculator for weighted marks
-- Persistent local storage for tasks and lists
+### Attendance
+
+- Create, rename, and delete courses
+- Room-backed course dashboard cards
+- Course detail screen with date-wise Present/Absent marking
+- Duplicate attendance protection and change confirmation
+- Attendance history in a bottom sheet
+- Live attendance statistics from Room records
 
 ## Tech Stack
 
 - Kotlin
 - Material 3 components
-- ViewPager2 + TabLayoutMediator
+- Room database with KSP
+- ViewModel + StateFlow
 - Single-activity architecture with fragments
+- ViewPager2 + TabLayoutMediator
+- RecyclerView
+
+## Database Notes
+
+- Tasks and Attendance are stored in Room and survive app restarts.
+- Attendance entries cascade-delete when a course is removed.
+- The database currently uses migration support so existing data is preserved.
 
 ## Personal Use Notice
 
-SemTrack is built primarily for my own academic and productivity needs. It is a real app that I use and plan to keep improving, driven by personal utility and solving my own problems rather than serving as a resume or showcase project.
+SemTrack is built primarily for personal academic and productivity use. It is an active app that is being improved incrementally rather than a showcase prototype.
 
 ## Getting Started
 
