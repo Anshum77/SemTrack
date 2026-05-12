@@ -7,5 +7,9 @@
     <string name="delete_completed">Delete completed</string>
     <string name="delete_completed_title">Delete completed tasks?</string>
     <string name="delete_completed_message">This will permanently delete all completed tasks.</string>
+    <string name="list_option_rename">Rename list</string>
+    <string name="list_option_delete">Delete list</string>
+    <string name="delete_list_title">Delete list?</string>
+    <string name="delete_list_message">This will permanently delete the list and all tasks in it.</string>
     <string name="toggle_completed">Toggle completed</string>
 </resources>

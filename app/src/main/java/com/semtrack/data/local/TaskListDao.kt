@@ -23,6 +23,9 @@ interface TaskListDao {
     @Query("UPDATE task_lists SET isCompletedExpanded = :isExpanded WHERE id = :listId")
     suspend fun setCompletedExpanded(listId: Long, isExpanded: Boolean)
 
+    @Query("DELETE FROM task_lists WHERE id = :listId")
+    suspend fun deleteList(listId: Long)
+
     @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM task_lists")
     suspend fun getMaxSortOrder(): Int
 

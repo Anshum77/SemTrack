@@ -38,11 +38,22 @@
         android:textColor="?android:textColorPrimary"
         tools:text="Sample Task" />
 
-    <ImageView
-        android:id="@+id/iv_star"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:src="@drawable/ic_star_outline"
-        android:contentDescription="Star Task" />
+    <FrameLayout
+        android:id="@+id/star_container"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:padding="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:id="@+id/iv_star"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_star_outline"
+            android:contentDescription="Star Task" />
+    </FrameLayout>
         
 </LinearLayout>

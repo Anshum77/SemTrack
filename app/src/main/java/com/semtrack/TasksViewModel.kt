@@ -56,6 +56,12 @@ class TasksViewModel(
         }
     }
 
+    fun deleteList(listId: Long) {
+        viewModelScope.launch {
+            repository.deleteList(listId)
+        }
+    }
+
     fun addTask(listId: Long, title: String) {
         viewModelScope.launch {
             repository.addTask(listId, title)

@@ -54,12 +54,8 @@ class TasksFragment : Fragment() {
         btnAddList = view.findViewById(R.id.btn_add_list)
 
         pagerAdapter = ListsPagerAdapter(
-            onRenameListRequested = { list ->
-                showListDialog("Rename List", list.name) { newName ->
-                    if (newName.isNotBlank() && isListNameAvailable(newName, list.id)) {
-                        viewModel.renameList(list.id, newName)
-                    }
-                }
+            onManageListRequested = { list ->
+                showListOptionsDialog(list)
             },
             onToggleCompletedExpanded = { list ->
                 viewModel.setCompletedExpanded(list.id, !list.isCompletedExpanded)
@@ -115,6 +111,10 @@ class TasksFragment : Fragment() {
                     if (pendingSelectLastList && lists.isNotEmpty()) {
                         viewPager.setCurrentItem(lists.size - 1, true)
                         pendingSelectLastList = false
+                    }
+
+                    if (lists.isNotEmpty() && viewPager.currentItem >= lists.size) {
+                        viewPager.setCurrentItem(lists.size - 1, false)
                     }
                 }
             }
@@ -208,6 +208,46 @@ class TasksFragment : Fragment() {
             .show()
     }
 
+    private fun showListOptionsDialog(list: TaskListUiState) {
+        val options = arrayOf(
+            getString(R.string.list_option_rename),
+            getString(R.string.list_option_delete)
+        )
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(list.name)
+            .setItems(options) { dialog, which ->
+                when (which) {
+                    0 -> {
+                        showListDialog("Rename List", list.name) { newName ->
+                            if (newName.isNotBlank() && isListNameAvailable(newName, list.id)) {
+                                viewModel.renameList(list.id, newName)
+                            }
+                        }
+                    }
+                    1 -> {
+                        showDeleteListDialog(list)
+                    }
+                }
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun showDeleteListDialog(list: TaskListUiState) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.delete_list_title)
+            .setMessage(R.string.delete_list_message)
+            .setPositiveButton("Delete") { dialog, _ ->
+                viewModel.deleteList(list.id)
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
     private fun isListNameAvailable(name: String, excludeListId: Long?): Boolean {
         return currentLists.none { it.name == name && it.id != excludeListId }
     }
@@ -259,7 +299,7 @@ class TasksFragment : Fragment() {
 
     // Inner adapter for ViewPager2
     inner class ListsPagerAdapter(
-        private val onRenameListRequested: (TaskListUiState) -> Unit,
+        private val onManageListRequested: (TaskListUiState) -> Unit,
         private val onToggleCompletedExpanded: (TaskListUiState) -> Unit,
         private val onClearCompleted: (TaskListUiState) -> Unit,
         private val onCompleteTask: (TaskUi) -> Unit,
@@ -342,7 +382,7 @@ class TasksFragment : Fragment() {
             updateCompletedSection(holder, listState)
 
             holder.btnEditList.setOnClickListener {
-                onRenameListRequested(listState)
+                onManageListRequested(listState)
             }
         }
 
@@ -386,6 +426,7 @@ class TaskAdapter(
         val title: TextView = view.findViewById(R.id.tv_task_title)
         val checkboxContainer: View = view.findViewById(R.id.checkbox_container)
         val ivCheckbox: ImageView = view.findViewById(R.id.iv_checkbox)
+        val starContainer: View = view.findViewById(R.id.star_container)
         val ivStar: ImageView = view.findViewById(R.id.iv_star)
     }
 
@@ -427,7 +468,7 @@ class TaskAdapter(
             onToggleComplete(task)
         }
 
-        holder.ivStar.setOnClickListener {
+        holder.starContainer.setOnClickListener {
             onToggleStar(task)
         }
 

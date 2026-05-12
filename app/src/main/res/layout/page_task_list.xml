@@ -41,8 +41,8 @@
                     android:layout_height="36dp"
                     android:padding="8dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_edit_themed"
-                    android:contentDescription="Edit list name"
+                    android:src="@drawable/ic_more_vert"
+                    android:contentDescription="List options"
                     app:tint="?attr/colorPrimary" />
             </LinearLayout>
 

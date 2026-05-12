@@ -41,6 +41,11 @@ class TasksRepository(
         taskListDao.renameList(listId, newName)
     }
 
+    suspend fun deleteList(listId: Long) {
+        taskListDao.deleteList(listId)
+        ensureDefaultList()
+    }
+
     suspend fun setCompletedExpanded(listId: Long, isExpanded: Boolean) {
         taskListDao.setCompletedExpanded(listId, isExpanded)
     }
