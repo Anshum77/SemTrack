@@ -86,6 +86,12 @@ class TasksViewModel(
         }
     }
 
+    fun updateTaskTitle(taskId: Long, title: String) {
+        viewModelScope.launch {
+            repository.updateTaskTitle(taskId, title)
+        }
+    }
+
     fun deleteCompletedTasks(listId: Long) {
         viewModelScope.launch {
             repository.deleteCompletedTasks(listId)

@@ -72,6 +72,9 @@ class TasksFragment : Fragment() {
             },
             onToggleStar = { task ->
                 viewModel.toggleStar(task)
+            },
+            onEditTask = { task ->
+                showEditTaskDialog(task)
             }
         )
         viewPager.adapter = pagerAdapter
@@ -180,6 +183,28 @@ class TasksFragment : Fragment() {
             .show()
     }
 
+    private fun showEditTaskDialog(task: TaskUi) {
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_add_task, null)
+        val etTaskTitle = dialogView.findViewById<EditText>(R.id.et_task_title)
+        etTaskTitle.setText(task.title)
+        etTaskTitle.setSelection(task.title.length)
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogView)
+            .setTitle("Edit Task")
+            .setPositiveButton("Save") { dialog, _ ->
+                val title = etTaskTitle.text.toString().trim()
+                if (title.isNotBlank()) {
+                    viewModel.updateTaskTitle(task.id, title)
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
     private fun isListNameAvailable(name: String, excludeListId: Long?): Boolean {
         return currentLists.none { it.name == name && it.id != excludeListId }
     }
@@ -191,7 +216,8 @@ class TasksFragment : Fragment() {
         private val onClearCompleted: (TaskListUiState) -> Unit,
         private val onCompleteTask: (TaskUi) -> Unit,
         private val onRestoreTask: (TaskUi) -> Unit,
-        private val onToggleStar: (TaskUi) -> Unit
+        private val onToggleStar: (TaskUi) -> Unit,
+        private val onEditTask: (TaskUi) -> Unit
     ) : RecyclerView.Adapter<ListsPagerAdapter.ListPageViewHolder>() {
 
         private var lists: List<TaskListUiState> = emptyList()
@@ -214,14 +240,16 @@ class TasksFragment : Fragment() {
                 rvTasks.layoutManager = LinearLayoutManager(view.context)
                 activeAdapter = TaskAdapter(
                     onToggleComplete = onCompleteTask,
-                    onToggleStar = onToggleStar
+                    onToggleStar = onToggleStar,
+                    onEditTask = onEditTask
                 )
                 rvTasks.adapter = activeAdapter
 
                 rvCompleted.layoutManager = LinearLayoutManager(view.context)
                 completedAdapter = TaskAdapter(
                     onToggleComplete = onRestoreTask,
-                    onToggleStar = onToggleStar
+                    onToggleStar = onToggleStar,
+                    onEditTask = onEditTask
                 )
                 rvCompleted.adapter = completedAdapter
             }
@@ -288,7 +316,8 @@ class TasksFragment : Fragment() {
 
 class TaskAdapter(
     private val onToggleComplete: (TaskUi) -> Unit,
-    private val onToggleStar: (TaskUi) -> Unit
+    private val onToggleStar: (TaskUi) -> Unit,
+    private val onEditTask: (TaskUi) -> Unit
 ) : RecyclerView.Adapter<TaskAdapter.TaskViewHolder>() {
 
     private var tasks: List<TaskUi> = emptyList()
@@ -342,9 +371,11 @@ class TaskAdapter(
         }
 
         holder.itemView.setOnClickListener {
-            if (task.isCompleted) {
-                onToggleComplete(task)
-            }
+            onEditTask(task)
+        }
+
+        holder.title.setOnClickListener {
+            onEditTask(task)
         }
     }
 

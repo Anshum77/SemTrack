@@ -67,6 +67,10 @@ class TasksRepository(
         taskDao.setStarred(taskId, isStarred)
     }
 
+    suspend fun updateTaskTitle(taskId: Long, title: String) {
+        taskDao.updateTitle(taskId, title)
+    }
+
     suspend fun deleteCompletedTasks(listId: Long) {
         taskDao.deleteCompleted(listId)
     }
