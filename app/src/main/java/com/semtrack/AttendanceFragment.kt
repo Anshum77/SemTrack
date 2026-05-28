@@ -202,6 +202,8 @@ class AttendanceFragment : Fragment() {
         class CourseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val name: TextView = view.findViewById(R.id.tv_course_name)
             val options: ImageView = view.findViewById(R.id.btn_course_options)
+            val percent: TextView = view.findViewById(R.id.tv_attendance_percent)
+            val classes: TextView = view.findViewById(R.id.tv_attendance_classes)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CourseViewHolder {
@@ -212,7 +214,18 @@ class AttendanceFragment : Fragment() {
 
         override fun onBindViewHolder(holder: CourseViewHolder, position: Int) {
             val course = courses[position]
+            val ctx = holder.itemView.context
             holder.name.text = course.name
+            holder.percent.text = ctx.getString(R.string.attendance_card_percent, course.percent)
+            holder.classes.text = ctx.getString(R.string.attendance_card_classes, course.present, course.total)
+
+            val percentColor = if (course.total == 0 || course.percent >= 75) {
+                androidx.core.content.ContextCompat.getColor(ctx, R.color.attendance_green)
+            } else {
+                androidx.core.content.ContextCompat.getColor(ctx, R.color.attendance_red)
+            }
+            holder.percent.setTextColor(percentColor)
+
             holder.options.setOnClickListener {
                 onManageCourse(course)
             }

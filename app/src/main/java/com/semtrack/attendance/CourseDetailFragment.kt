@@ -1,11 +1,14 @@
 package com.semtrack.attendance
 
+import android.animation.ArgbEvaluator
+import android.animation.ValueAnimator
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -52,6 +55,8 @@ class CourseDetailFragment : Fragment() {
     private lateinit var tvPercent: TextView
     private lateinit var tvSafeSkipsLabel: TextView
     private lateinit var tvSafeSkipsValue: TextView
+    private lateinit var llSafeSkipsContainer: View
+    private lateinit var ivSafeSkipsIcon: ImageView
     private lateinit var btnPickDate: MaterialButton
     private lateinit var btnPresent: MaterialButton
     private lateinit var btnAbsent: MaterialButton
@@ -79,6 +84,8 @@ class CourseDetailFragment : Fragment() {
         tvPercent = view.findViewById(R.id.tv_attendance_percent)
         tvSafeSkipsLabel = view.findViewById(R.id.tv_safe_skips_label)
         tvSafeSkipsValue = view.findViewById(R.id.tv_safe_skips_value)
+        llSafeSkipsContainer = view.findViewById(R.id.ll_safe_skips_container)
+        ivSafeSkipsIcon = view.findViewById(R.id.iv_safe_skips_icon)
         btnPickDate = view.findViewById(R.id.btn_pick_date)
         btnPresent = view.findViewById(R.id.btn_mark_present)
         btnAbsent = view.findViewById(R.id.btn_mark_absent)
@@ -113,22 +120,56 @@ class CourseDetailFragment : Fragment() {
                         val absent = total - present
                         val percent = stats.percent
 
+                        // Modern animation: Smoothly count up percentage
+                        val oldPercent = tvPercent.tag as? Int ?: 0
+                        ValueAnimator.ofInt(oldPercent, percent).apply {
+                            duration = 800
+                            interpolator = DecelerateInterpolator()
+                            addUpdateListener { animator ->
+                                tvPercent.text = getString(R.string.attendance_percent_value, animator.animatedValue as Int)
+                            }
+                            start()
+                        }
+                        tvPercent.tag = percent
+
                         tvPresentCount.text = present.toString()
                         tvAbsent.text = absent.toString()
                         tvTotalCount.text = total.toString()
-                        tvPercent.text = getString(R.string.attendance_percent_value, percent)
 
-                        val percentColor = if (percent >= 75) {
+                        // Modern animation: Smoothly fade colors between thresholds
+                        val oldColor = tvPercent.currentTextColor
+                        val newColor = if (percent >= 75) {
                             ContextCompat.getColor(requireContext(), R.color.attendance_green)
                         } else {
                             ContextCompat.getColor(requireContext(), R.color.attendance_red)
                         }
-                        tvPercent.setTextColor(percentColor)
+                        if (oldColor != newColor && oldPercent != 0) {
+                            ValueAnimator.ofObject(ArgbEvaluator(), oldColor, newColor).apply {
+                                duration = 800
+                                addUpdateListener { animator -> tvPercent.setTextColor(animator.animatedValue as Int) }
+                                start()
+                            }
+                        } else {
+                            tvPercent.setTextColor(newColor)
+                        }
 
-                        if (percent >= 75) {
+                        if (total == 0) {
                             tvSafeSkipsLabel.text = getString(R.string.attendance_safe_skips_label)
+                            tvSafeSkipsValue.text = "0"
+                            llSafeSkipsContainer.setBackgroundResource(R.drawable.bg_safe_skips_card)
+                            ivSafeSkipsIcon.setImageResource(R.drawable.ic_shield_check)
+                        } else if (percent >= 75) {
+                            tvSafeSkipsLabel.text = getString(R.string.attendance_safe_skips_label)
+                            val safeSkips = (4 * present) / 3 - total
+                            tvSafeSkipsValue.text = safeSkips.toString()
+                            llSafeSkipsContainer.setBackgroundResource(R.drawable.bg_safe_skips_card)
+                            ivSafeSkipsIcon.setImageResource(R.drawable.ic_shield_check)
                         } else {
                             tvSafeSkipsLabel.text = getString(R.string.attendance_required_classes_label)
+                            val requiredClasses = 3 * total - 4 * present
+                            tvSafeSkipsValue.text = requiredClasses.toString()
+                            llSafeSkipsContainer.setBackgroundResource(R.drawable.bg_required_classes_card)
+                            ivSafeSkipsIcon.setImageResource(R.drawable.ic_warning_triangle)
                         }
                     }
                 }
@@ -242,7 +283,7 @@ class CourseDetailFragment : Fragment() {
     }
 
     private fun showHistoryBottomSheet() {
-        val dialog = BottomSheetDialog(requireContext())
+        val dialog = BottomSheetDialog(requireContext(), com.google.android.material.R.style.ThemeOverlay_Material3_BottomSheetDialog)
         val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_attendance_history, null)
         val recycler = sheetView.findViewById<RecyclerView>(R.id.rv_history_sheet)
         recycler.layoutManager = LinearLayoutManager(requireContext())

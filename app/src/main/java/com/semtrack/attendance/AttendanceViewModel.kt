@@ -5,11 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.semtrack.data.AttendanceRepository
-import com.semtrack.data.local.CourseEntity
 import com.semtrack.data.local.SemTrackDatabase
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -18,7 +17,24 @@ class AttendanceViewModel(
 ) : ViewModel() {
 
     val courses: StateFlow<List<CourseUi>> = repository.observeCourses()
-        .map { list -> list.map { it.toUi() } }
+        .combine(repository.observeAllEntries()) { courseList, allEntries ->
+            val entriesByCourse = allEntries.groupBy { it.courseId }
+            courseList.map { course ->
+                val entries = entriesByCourse[course.id].orEmpty()
+                val present = entries.count { it.status == AttendanceStatus.PRESENT }
+                val total = entries.size
+                val absent = total - present
+                val percent = if (total == 0) 0 else (present * 100) / total
+                CourseUi(
+                    id = course.id,
+                    name = course.name,
+                    present = present,
+                    absent = absent,
+                    total = total,
+                    percent = percent
+                )
+            }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun addCourse(name: String, onResult: (Boolean) -> Unit) {
@@ -39,10 +55,6 @@ class AttendanceViewModel(
         viewModelScope.launch {
             repository.deleteCourse(courseId)
         }
-    }
-
-    private fun CourseEntity.toUi(): CourseUi {
-        return CourseUi(id = id, name = name)
     }
 
     class Factory(private val appContext: Context) : ViewModelProvider.Factory {

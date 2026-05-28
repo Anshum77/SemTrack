@@ -24,4 +24,7 @@ interface AttendanceEntryDao {
 
     @Query("DELETE FROM attendance_entries WHERE courseId = :courseId")
     suspend fun deleteByCourse(courseId: Long)
+
+    @Query("SELECT * FROM attendance_entries")
+    fun observeAllEntries(): Flow<List<AttendanceEntryEntity>>
 }

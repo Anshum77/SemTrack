@@ -12,6 +12,8 @@ class AttendanceRepository(
 ) {
     fun observeCourses(): Flow<List<CourseEntity>> = courseDao.observeCourses()
 
+    fun observeAllEntries() = attendanceEntryDao.observeAllEntries()
+
     fun observeEntries(courseId: Long) = attendanceEntryDao.observeEntries(courseId)
 
     suspend fun addCourse(name: String): Boolean {

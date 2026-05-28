@@ -9,22 +9,23 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingTop="16dp">
+        android:paddingTop="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="20dp"
-            android:paddingBottom="12dp">
+            android:paddingHorizontal="24dp"
+            android:paddingBottom="16dp">
 
             <TextView
                 android:id="@+id/tv_attendance_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/attendance_title"
-                android:textSize="24sp"
+                android:textSize="28sp"
                 android:textStyle="bold"
+                android:letterSpacing="0.01"
                 android:textColor="?attr/colorOnSurface" />
 
             <TextView
@@ -56,8 +57,8 @@
         android:layout_gravity="bottom|end"
         android:contentDescription="Add Course"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large"
-        app:tint="?attr/colorOnSecondaryContainer"
-        app:backgroundTint="?attr/colorSecondaryContainer"
+        app:tint="?attr/colorOnPrimaryContainer"
+        app:backgroundTint="?attr/colorPrimaryContainer"
         android:src="@android:drawable/ic_input_add" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

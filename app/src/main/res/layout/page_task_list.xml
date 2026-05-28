@@ -31,9 +31,9 @@
                     android:layout_weight="1"
                     android:layout_height="wrap_content"
                     android:text="My Tasks"
-                    android:textSize="18sp"
+                    android:textAppearance="?attr/textAppearanceHeadlineSmall"
                     android:textStyle="bold"
-                    android:textColor="?android:textColorPrimary" />
+                    android:textColor="?attr/colorOnSurface" />
                     
                 <ImageView
                     android:id="@+id/btn_edit_list"
@@ -50,8 +50,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="?attr/colorSurface"
-                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Medium">
+                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large">
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rv_tasks"
@@ -85,8 +85,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/completed"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"
                         android:textColor="?attr/colorOnSurface" />
 
                     <TextView
@@ -95,7 +94,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
                         android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textSize="14sp" />
+                        android:textAppearance="?attr/textAppearanceTitleMedium" />
 
                     <View
                         android:layout_width="0dp"
@@ -129,8 +128,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardElevation="0dp"
-                    app:cardBackgroundColor="?attr/colorSurface"
-                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Medium">
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large">
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_completed_tasks"

@@ -3,19 +3,20 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurfaceVariant">
+    android:background="?attr/colorSurface">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingTop="8dp">
+        android:paddingTop="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
             android:layout_marginBottom="16dp">
             
             <com.google.android.material.tabs.TabLayout
@@ -24,6 +25,9 @@
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 app:tabMode="scrollable"
+                app:tabIndicatorAnimationMode="elastic"
+                app:tabIndicatorFullWidth="false"
+                app:tabTextAppearance="@style/TextAppearance.Material3.TitleMedium"
                 android:background="@android:color/transparent" />
 
             <ImageView
@@ -31,6 +35,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:padding="12dp"
+                android:layout_marginStart="8dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_add_circle_themed"
                 android:contentDescription="Add new list"
@@ -51,10 +56,14 @@
         android:layout_marginEnd="24dp"
         android:layout_marginBottom="70dp"
         android:layout_gravity="bottom|end"
+        app:layout_behavior="com.google.android.material.behavior.HideBottomViewOnScrollBehavior"
         android:contentDescription="Add Task"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large"
         app:tint="?attr/colorOnPrimaryContainer"
         app:backgroundTint="?attr/colorPrimaryContainer"
+        app:elevation="4dp"
+        app:hoveredFocusedTranslationZ="8dp"
+        app:pressedTranslationZ="8dp"
         android:src="@android:drawable/ic_input_add" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
