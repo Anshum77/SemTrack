@@ -24,7 +24,7 @@ class AttendanceViewModel(
                 val present = entries.count { it.status == AttendanceStatus.PRESENT }
                 val total = entries.size
                 val absent = total - present
-                val percent = if (total == 0) 0 else (present * 100) / total
+                val percent = if (total == 0) 0.0 else (present * 100.0) / total
                 CourseUi(
                     id = course.id,
                     name = course.name,
@@ -54,6 +54,12 @@ class AttendanceViewModel(
     fun deleteCourse(courseId: Long) {
         viewModelScope.launch {
             repository.deleteCourse(courseId)
+        }
+    }
+
+    fun updateCourseOrders(courseIds: List<Long>) {
+        viewModelScope.launch {
+            repository.updateCourseOrders(courseIds)
         }
     }
 

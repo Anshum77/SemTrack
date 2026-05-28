@@ -26,7 +26,7 @@ class AttendanceDetailViewModel(
 
     val stats: StateFlow<AttendanceStatsUi> = entriesFlow
         .map { list -> list.toStats() }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AttendanceStatsUi(0, 0, 0, 0))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AttendanceStatsUi(0, 0, 0, 0.0))
 
     fun markAttendance(dateEpochDay: Long, status: Int, onResult: (MarkResult) -> Unit) {
         viewModelScope.launch {
@@ -70,7 +70,7 @@ class AttendanceDetailViewModel(
         val presentCount = count { it.status == AttendanceStatus.PRESENT }
         val absentCount = count { it.status == AttendanceStatus.ABSENT }
         val totalCount = size
-        val percent = if (totalCount == 0) 0 else (presentCount * 100) / totalCount
+        val percent = if (totalCount == 0) 0.0 else (presentCount * 100.0) / totalCount
         return AttendanceStatsUi(
             present = presentCount,
             absent = absentCount,

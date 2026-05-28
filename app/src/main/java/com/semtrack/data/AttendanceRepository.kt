@@ -33,6 +33,12 @@ class AttendanceRepository(
         courseDao.deleteCourse(courseId)
     }
 
+    suspend fun updateCourseOrders(courseIds: List<Long>) {
+        courseIds.forEachIndexed { index, id ->
+            courseDao.updateSortOrder(id, index)
+        }
+    }
+
     suspend fun getEntry(courseId: Long, dateEpochDay: Long): AttendanceEntryEntity? {
         return attendanceEntryDao.getEntry(courseId, dateEpochDay)
     }

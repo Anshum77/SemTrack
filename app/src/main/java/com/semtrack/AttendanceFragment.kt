@@ -14,6 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.ItemTouchHelper
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
@@ -54,6 +55,29 @@ class AttendanceFragment : Fragment() {
         rvCourses.layoutManager = LinearLayoutManager(requireContext())
         rvCourses.adapter = adapter
 
+        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
+        ) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                val fromPos = viewHolder.adapterPosition
+                val toPos = target.adapterPosition
+                adapter.moveItem(fromPos, toPos)
+                return true
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+            
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                viewModel.updateCourseOrders(adapter.getCurrentCourses().map { it.id })
+            }
+        })
+        itemTouchHelper.attachToRecyclerView(rvCourses)
+
         fabAddCourse.setOnClickListener {
             showAddCourseDialog()
         }
@@ -76,7 +100,7 @@ class AttendanceFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        (activity as? AppCompatActivity)?.supportActionBar?.title = getString(R.string.attendance_title)
+        (activity as? AppCompatActivity)?.supportActionBar?.title = "Attendance"
     }
 
     private fun showAddCourseDialog() {
@@ -240,5 +264,15 @@ class AttendanceFragment : Fragment() {
             courses = newCourses
             notifyDataSetChanged()
         }
+
+        fun moveItem(fromPosition: Int, toPosition: Int) {
+            val list = courses.toMutableList()
+            val item = list.removeAt(fromPosition)
+            list.add(toPosition, item)
+            courses = list
+            notifyItemMoved(fromPosition, toPosition)
+        }
+
+        fun getCurrentCourses(): List<CourseUi> = courses
     }
 }

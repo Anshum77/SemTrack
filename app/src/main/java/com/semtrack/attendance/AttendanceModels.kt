@@ -10,7 +10,7 @@ data class AttendanceStatsUi(
     val present: Int,
     val absent: Int,
     val total: Int,
-    val percent: Int
+    val percent: Double
 )
 
 object AttendanceStatus {

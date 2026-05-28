@@ -121,16 +121,17 @@ class CourseDetailFragment : Fragment() {
                         val percent = stats.percent
 
                         // Modern animation: Smoothly count up percentage
-                        val oldPercent = tvPercent.tag as? Int ?: 0
-                        ValueAnimator.ofInt(oldPercent, percent).apply {
+                        val oldPercent = tvPercent.tag as? Float ?: 0f
+                        ValueAnimator.ofFloat(oldPercent, percent.toFloat()).apply {
                             duration = 800
                             interpolator = DecelerateInterpolator()
                             addUpdateListener { animator ->
-                                tvPercent.text = getString(R.string.attendance_percent_value, animator.animatedValue as Int)
+                                val animatedValue = animator.animatedValue as Float
+                                tvPercent.text = String.format(Locale.getDefault(), "%.2f%%", animatedValue)
                             }
                             start()
                         }
-                        tvPercent.tag = percent
+                        tvPercent.tag = percent.toFloat()
 
                         tvPresentCount.text = present.toString()
                         tvAbsent.text = absent.toString()
@@ -143,7 +144,7 @@ class CourseDetailFragment : Fragment() {
                         } else {
                             ContextCompat.getColor(requireContext(), R.color.attendance_red)
                         }
-                        if (oldColor != newColor && oldPercent != 0) {
+                        if (oldColor != newColor && oldPercent != 0f) {
                             ValueAnimator.ofObject(ArgbEvaluator(), oldColor, newColor).apply {
                                 duration = 800
                                 addUpdateListener { animator -> tvPercent.setTextColor(animator.animatedValue as Int) }

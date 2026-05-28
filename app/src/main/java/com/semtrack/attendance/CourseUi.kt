@@ -6,5 +6,5 @@ data class CourseUi(
     val present: Int = 0,
     val absent: Int = 0,
     val total: Int = 0,
-    val percent: Int = 0
+    val percent: Double = 0.0
 )

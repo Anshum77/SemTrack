@@ -35,15 +35,41 @@
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
-    <!-- Side Navigation Menu -->
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/nav_view"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        app:itemIconTint="@color/nav_item_tint"
-        app:itemTextColor="@color/nav_item_tint"
-        app:itemShapeFillColor="@color/nav_item_bg"
-        app:menu="@menu/bottom_nav_menu" />
+        android:orientation="vertical"
+        android:background="?attr/colorSurface">
+
+        <com.google.android.material.navigation.NavigationView
+            android:id="@+id/nav_view"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            app:headerLayout="@layout/nav_header_main"
+            app:itemIconPadding="16dp"
+            app:itemHorizontalPadding="24dp"
+            app:itemShapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large"
+            app:itemShapeFillColor="@color/nav_item_bg"
+            app:itemTextAppearance="@style/TextAppearance.NavMenu.Bold"
+            app:itemTextColor="@color/nav_item_tint"
+            app:itemIconTint="@color/nav_item_tint"
+            android:background="@android:color/transparent"
+            app:menu="@menu/bottom_nav_menu" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:layout_marginBottom="45dp"
+            android:gravity="center"
+            android:text="MADE BY ANSHUM"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="12sp"
+            android:letterSpacing="0.1"
+            android:textAllCaps="true" />
+
+    </LinearLayout>
 
 </androidx.drawerlayout.widget.DrawerLayout>

@@ -25,7 +25,7 @@
     <string name="course_name_hint">Course name</string>
     <string name="attendance_percent_placeholder">0% Attendance</string>
     <string name="attendance_classes_placeholder">0 / 0 Classes</string>
-    <string name="attendance_card_percent">%1$d%% Attendance</string>
+    <string name="attendance_card_percent">%1$.2f%% Attendance</string>
     <string name="attendance_card_classes">%1$d / %2$d Classes</string>
     <string name="attendance_present_label">Present</string>
     <string name="attendance_absent_label">Absent</string>
@@ -41,7 +41,7 @@
     <string name="attendance_status_absent">Absent</string>
     <string name="attendance_present_total">%1$d / %2$d</string>
     <string name="attendance_absent_count">%1$d</string>
-    <string name="attendance_percent_value">%1$d%%</string>
+    <string name="attendance_percent_value">%1$.2f%%</string>
     <string name="attendance_already_marked">Attendance already marked for this date.</string>
     <string name="attendance_marked_message">Attendance saved.</string>
     <string name="attendance_change_title">Change attendance?</string>

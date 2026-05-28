@@ -49,6 +49,10 @@
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
-
     <style name="Theme.SemTrack" parent="Base.Theme.SemTrack" />
+
+    <style name="TextAppearance.NavMenu.Bold" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">16sp</item>
+    </style>
 </resources>

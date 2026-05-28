@@ -19,6 +19,9 @@ interface CourseDao {
     @Query("DELETE FROM courses WHERE id = :courseId")
     suspend fun deleteCourse(courseId: Long)
 
+    @Query("UPDATE courses SET sortOrder = :order WHERE id = :courseId")
+    suspend fun updateSortOrder(courseId: Long, order: Int)
+
     @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM courses")
     suspend fun getMaxSortOrder(): Int
 
