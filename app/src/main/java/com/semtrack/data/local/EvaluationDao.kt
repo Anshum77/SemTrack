@@ -28,6 +28,12 @@ interface EvaluationDao {
     @Query("SELECT * FROM evaluation_categories")
     fun observeAllCategoriesWithItems(): Flow<List<CategoryWithItems>>
 
+    @Query("SELECT * FROM evaluation_categories WHERE id = :categoryId")
+    suspend fun getCategoryById(categoryId: Long): EvaluationCategoryEntity?
+
+    @Query("SELECT * FROM evaluation_items WHERE categoryId = :categoryId ORDER BY id ASC")
+    suspend fun getItemsForCategory(categoryId: Long): List<EvaluationItemEntity>
+
     @Insert
     suspend fun insertCategory(category: EvaluationCategoryEntity): Long
 

@@ -23,7 +23,7 @@ data class EvaluationCategoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val courseId: Long,
     val name: String,
-    val weightage: Double,
+    val weightage: Double? = null,
     val itemCount: Int,
     val bestOf: Int? = null
 )

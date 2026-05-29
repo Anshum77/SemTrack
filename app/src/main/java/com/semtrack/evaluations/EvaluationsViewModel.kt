@@ -30,7 +30,7 @@ class EvaluationsViewModel(
                     val items = catWithItems.items
 
                     val consideredCount = category.bestOf ?: category.itemCount
-                    val itemWeightage = if (consideredCount > 0) category.weightage / consideredCount else 0.0
+                    val itemWeightage = if (consideredCount > 0 && category.weightage != null) category.weightage / consideredCount else 0.0
 
                     // Filter items that have been evaluated (totalMarks > 0)
                     val evaluatedItems = items.filter { it.totalMarks != null && it.totalMarks > 0 }
@@ -44,7 +44,7 @@ class EvaluationsViewModel(
                     // We only consider up to `consideredCount` items
                     val itemsToCount = minOf(evaluatedItems.size, consideredCount)
                     
-                    if (itemsToCount > 0) {
+                    if (itemsToCount > 0 && category.weightage != null) {
                         totalEvaluatedWeightage += (itemsToCount * itemWeightage)
                         totalObtainedPercentage += evaluatedItems.take(itemsToCount).sum()
                     }

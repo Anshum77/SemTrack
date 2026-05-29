@@ -54,7 +54,7 @@
             app:itemShapeFillColor="@color/nav_item_bg"
             app:itemTextAppearance="@style/TextAppearance.NavMenu.Bold"
             app:itemTextColor="@color/nav_item_tint"
-            app:itemIconTint="@color/nav_item_tint"
+            app:itemIconTint="@null"
             android:background="@android:color/transparent"
             app:menu="@menu/bottom_nav_menu" />
 

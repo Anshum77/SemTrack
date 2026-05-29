@@ -32,7 +32,8 @@ sealed class EvalListItem {
         val item: EvaluationItemEntity, 
         val itemWeightage: Double,
         val obtainedWeightage: Double?,
-        val isDropped: Boolean
+        val isDropped: Boolean,
+        val isWeightageNull: Boolean
     ) : EvalListItem()
 }
 
@@ -91,13 +92,13 @@ class EvaluationDetailFragment : Fragment() {
 
         adapter = EvaluationAdapter(
             onItemClick = { itemRow -> showItemMarksDialog(itemRow.item) },
-            onCategoryLongClick = { category -> showDeleteCategoryDialog(category) }
+            onCategoryLongClick = { category -> showCategoryOptionsDialog(category) }
         )
         rvEvaluations.layoutManager = LinearLayoutManager(requireContext())
         rvEvaluations.adapter = adapter
 
         fabAddCategory.setOnClickListener {
-            showAddCategoryDialog()
+            showCategoryDialog()
         }
 
         return view
@@ -117,7 +118,8 @@ class EvaluationDetailFragment : Fragment() {
                         val category = catWithItems.category
                         
                         val consideredCount = category.bestOf ?: category.itemCount
-                        val itemWeightage = if (consideredCount > 0) category.weightage / consideredCount else 0.0
+                        val isWeightageNull = category.weightage == null
+                        val itemWeightage = if (consideredCount > 0 && !isWeightageNull) category.weightage / consideredCount else 0.0
                         
                         // First calculate the items to figure out what's dropped and what's kept
                         val evaluatedItems = catWithItems.items.filter { it.totalMarks != null && it.totalMarks > 0 }
@@ -145,7 +147,7 @@ class EvaluationDetailFragment : Fragment() {
                             
                             val isDropped = isEvaluated && !topItemIds.contains(item.id)
                             
-                            listItems.add(EvalListItem.ItemRow(item, itemWeightage, obtainedWeightage, isDropped))
+                            listItems.add(EvalListItem.ItemRow(item, itemWeightage, obtainedWeightage, isDropped, isWeightageNull))
                         }
                     }
                     adapter.submitList(listItems)
@@ -159,15 +161,26 @@ class EvaluationDetailFragment : Fragment() {
         (activity as? AppCompatActivity)?.supportActionBar?.title = "Evaluation Details"
     }
 
-    private fun showAddCategoryDialog() {
+    private fun showCategoryDialog(category: EvaluationCategoryEntity? = null) {
         val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_evaluation_category, null)
         val etName = dialogView.findViewById<TextInputEditText>(R.id.et_cat_name)
         val etWeightage = dialogView.findViewById<TextInputEditText>(R.id.et_cat_weightage)
         val etItemCount = dialogView.findViewById<TextInputEditText>(R.id.et_cat_item_count)
         val etBestOf = dialogView.findViewById<TextInputEditText>(R.id.et_cat_best_of)
 
+        val isEdit = category != null
+
+        if (isEdit) {
+            etName.setText(category!!.name)
+            etWeightage.setText(category.weightage?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() } ?: "")
+            etItemCount.setText(category.itemCount.toString())
+            etBestOf.setText(category.bestOf?.toString() ?: "")
+        }
+
+        val title = if (isEdit) "Edit Category" else "Add Assessment Category"
+
         val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Add Assessment Category")
+            .setTitle(title)
             .setView(dialogView)
             .setPositiveButton("Save", null)
             .setNegativeButton("Cancel", null)
@@ -180,18 +193,27 @@ class EvaluationDetailFragment : Fragment() {
                 val countStr = etItemCount.text.toString().trim()
                 val bestOfStr = etBestOf.text.toString().trim()
 
-                if (name.isEmpty() || weightStr.isEmpty() || countStr.isEmpty()) {
+                if (name.isEmpty() || countStr.isEmpty()) {
                     if (name.isEmpty()) etName.error = "Required"
-                    if (weightStr.isEmpty()) etWeightage.error = "Required"
                     if (countStr.isEmpty()) etItemCount.error = "Required"
                     return@setOnClickListener
                 }
 
-                val weight = weightStr.toDoubleOrNull() ?: 0.0
+                val currentCategories = viewModel.uiState.value.categories
+                val nameExists = currentCategories.any { 
+                    it.category.name.equals(name, ignoreCase = true) && 
+                    (!isEdit || it.category.id != category?.id) 
+                }
+                if (nameExists) {
+                    etName.error = "Category name already exists"
+                    return@setOnClickListener
+                }
+
+                val weight = weightStr.toDoubleOrNull()
                 val count = countStr.toIntOrNull() ?: 0
                 val bestOf = bestOfStr.toIntOrNull()
 
-                if (weight <= 0 || weight > 100) {
+                if (weight != null && (weight <= 0 || weight > 100)) {
                     etWeightage.error = "Must be between 0 and 100"
                     return@setOnClickListener
                 }
@@ -206,14 +228,20 @@ class EvaluationDetailFragment : Fragment() {
                     return@setOnClickListener
                 }
 
-                val currentCategories = viewModel.uiState.value.categories
-                val currentWeightSum = currentCategories.sumOf { it.category.weightage }
-                if (currentWeightSum + weight > 100) {
+
+                val currentWeightSum = currentCategories
+                    .filter { !isEdit || it.category.id != category?.id }
+                    .sumOf { it.category.weightage ?: 0.0 }
+                if (weight != null && currentWeightSum + weight > 100) {
                     etWeightage.error = "Total course weightage exceeds 100% (currently ${currentWeightSum}%)"
                     return@setOnClickListener
                 }
 
-                viewModel.addCategory(name, weight, count, bestOf)
+                if (isEdit) {
+                    viewModel.editCategory(category!!.id, name, weight, count, bestOf)
+                } else {
+                    viewModel.addCategory(name, weight, count, bestOf)
+                }
                 dialog.dismiss()
             }
         }
@@ -266,6 +294,19 @@ class EvaluationDetailFragment : Fragment() {
         }
 
         dialog.show()
+    }
+
+    private fun showCategoryOptionsDialog(category: EvaluationCategoryEntity) {
+        val options = arrayOf("Edit Category", "Delete Category")
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(category.name)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> showCategoryDialog(category)
+                    1 -> showDeleteCategoryDialog(category)
+                }
+            }
+            .show()
     }
 
     private fun showDeleteCategoryDialog(category: EvaluationCategoryEntity) {
@@ -338,9 +379,13 @@ class EvaluationDetailFragment : Fragment() {
                 tvName.text = category.name
                 
                 val obt = String.format(Locale.getDefault(), "%.2f%%", header.obtainedPercentage)
-                val total = String.format(Locale.getDefault(), "%.2f%%", category.weightage)
                 tvObtained.text = obt
-                tvWeightage.text = " / $total"
+                if (category.weightage != null) {
+                    val total = String.format(Locale.getDefault(), "%.2f%%", category.weightage)
+                    tvWeightage.text = " / $total"
+                } else {
+                    tvWeightage.text = " (TBD)"
+                }
                 
                 val ruleText = if (category.bestOf != null) "Best ${category.bestOf} of ${category.itemCount}" else "${category.itemCount} Items"
                 tvRule.text = ruleText
@@ -354,7 +399,7 @@ class EvaluationDetailFragment : Fragment() {
 
             fun bind(row: EvalListItem.ItemRow) {
                 tvName.text = row.item.name
-                val w = String.format(Locale.getDefault(), "%.2f", row.itemWeightage)
+                val w = if (row.isWeightageNull) "TBD" else String.format(Locale.getDefault(), "%.2f", row.itemWeightage)
                 
                 if (row.item.totalMarks != null && row.item.totalMarks > 0) {
                     val obtMarks = row.item.marksObtained ?: 0.0
@@ -375,7 +420,11 @@ class EvaluationDetailFragment : Fragment() {
                     }
                 } else {
                     tvMarks.text = "Marks: Not Evaluated"
-                    tvContribution.text = "Max: $w%"
+                    if (row.isWeightageNull) {
+                        tvContribution.text = "Max: TBD"
+                    } else {
+                        tvContribution.text = "Max: $w%"
+                    }
                     tvContribution.alpha = 0.5f
                     tvName.paintFlags = tvName.paintFlags and android.graphics.Paint.STRIKE_THRU_TEXT_FLAG.inv()
                     itemView.alpha = 1.0f

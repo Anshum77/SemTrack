@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         EvaluationCategoryEntity::class,
         EvaluationItemEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class SemTrackDatabase : RoomDatabase() {
@@ -118,13 +118,39 @@ abstract class SemTrackDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // To safely change weightage to nullable, we create a temp table, copy data, drop old, rename new.
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS evaluation_categories_new (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "courseId INTEGER NOT NULL, " +
+                        "name TEXT NOT NULL, " +
+                        "weightage REAL, " +
+                        "itemCount INTEGER NOT NULL, " +
+                        "bestOf INTEGER, " +
+                        "FOREIGN KEY(courseId) REFERENCES courses(id) ON DELETE CASCADE" +
+                    ")"
+                )
+                db.execSQL(
+                    "INSERT INTO evaluation_categories_new (id, courseId, name, weightage, itemCount, bestOf) " +
+                    "SELECT id, courseId, name, weightage, itemCount, bestOf FROM evaluation_categories"
+                )
+                db.execSQL("DROP TABLE evaluation_categories")
+                db.execSQL("ALTER TABLE evaluation_categories_new RENAME TO evaluation_categories")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_evaluation_categories_courseId ON evaluation_categories(courseId)"
+                )
+            }
+        }
+
         fun getInstance(context: Context): SemTrackDatabase {
             return instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
                     context.applicationContext,
                     SemTrackDatabase::class.java,
                     "semtrack.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build().also { instance = it }
             }
         }

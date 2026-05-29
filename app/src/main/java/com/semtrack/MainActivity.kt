@@ -25,6 +25,7 @@ class MainActivity : AppCompatActivity() {
         val appBarLayout = findViewById<AppBarLayout>(R.id.appbar_layout)
         val toolbar = findViewById<MaterialToolbar>(R.id.topAppBar)
         val navView = findViewById<NavigationView>(R.id.nav_view)
+        navView.itemIconTintList = null
 
         // Handle window insets so the toolbar doesn't overlap with the status bar
         ViewCompat.setOnApplyWindowInsetsListener(appBarLayout) { v, insets ->

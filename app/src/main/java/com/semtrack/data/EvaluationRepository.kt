@@ -40,7 +40,7 @@ class EvaluationRepository(
     suspend fun addCategoryWithItems(
         courseId: Long,
         name: String,
-        weightage: Double,
+        weightage: Double?,
         itemCount: Int,
         bestOf: Int?
     ): Boolean {
@@ -63,6 +63,68 @@ class EvaluationRepository(
                 )
             }
             evaluationDao.insertItems(items)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun editCategoryWithItems(
+        categoryId: Long,
+        name: String,
+        weightage: Double?,
+        itemCount: Int,
+        bestOf: Int?
+    ): Boolean {
+        return try {
+            val category = evaluationDao.getCategoryById(categoryId) ?: return false
+            val items = evaluationDao.getItemsForCategory(categoryId)
+
+            // Update category
+            val updatedCategory = category.copy(
+                name = name,
+                weightage = weightage,
+                itemCount = itemCount,
+                bestOf = bestOf
+            )
+            evaluationDao.updateCategory(updatedCategory)
+
+            // Handle items
+            val currentCount = items.size
+            if (itemCount > currentCount) {
+                // Add new items
+                val newItems = (currentCount + 1..itemCount).map { i ->
+                    EvaluationItemEntity(
+                        categoryId = categoryId,
+                        name = "$name $i",
+                        totalMarks = null,
+                        marksObtained = null
+                    )
+                }
+                evaluationDao.insertItems(newItems)
+            } else if (itemCount < currentCount) {
+                // Delete items from the end, but stop if we hit one with marks
+                var itemsToDelete = currentCount - itemCount
+                for (i in items.indices.reversed()) {
+                    if (itemsToDelete <= 0) break
+                    val item = items[i]
+                    if (item.totalMarks == null && item.marksObtained == null) {
+                        evaluationDao.deleteItem(item.id)
+                        itemsToDelete--
+                    } else {
+                        // Stop deleting if we hit an item with marks
+                        break
+                    }
+                }
+                
+                // If we couldn't delete enough items because they had marks,
+                // update the category's itemCount to reflect the actual remaining count
+                val actualCount = currentCount - (currentCount - itemCount - itemsToDelete)
+                if (actualCount != itemCount) {
+                    evaluationDao.updateCategory(updatedCategory.copy(itemCount = actualCount))
+                }
+            }
+
             true
         } catch (e: Exception) {
             false
